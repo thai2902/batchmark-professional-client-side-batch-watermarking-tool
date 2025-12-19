@@ -8,13 +8,13 @@ export interface BatchImage {
 export interface WatermarkConfig {
   type: 'text' | 'image';
   text: string;
-  image: string | null; // Data URL
+  image: string | null; // Data URL for the logo
   opacity: number; // 0-100
-  scale: number; // 10-200
+  scale: number; // 10-200 (for image size %)
   rotate: number; // 0-360
   position: 'tl' | 'tc' | 'tr' | 'ml' | 'mc' | 'mr' | 'bl' | 'bc' | 'br' | 'tiled';
   color: string;
-  fontSize: number;
+  fontSize: number; // Used for text scale
   fontFamily: string;
   gap: number;
 }
@@ -29,6 +29,7 @@ interface BatchState {
   removeImage: (id: string) => void;
   clearImages: () => void;
   updateConfig: (updates: Partial<WatermarkConfig>) => void;
+  clearWatermarkImage: () => void;
   setActiveImage: (id: string | null) => void;
   setProcessing: (processing: boolean) => void;
   setProgress: (progress: number) => void;
@@ -43,7 +44,7 @@ export const useBatchStore = create<BatchState>((set) => ({
     text: 'COPYRIGHT 2024',
     image: null,
     opacity: 50,
-    scale: 100,
+    scale: 20, // Default 20% of image width for logo
     rotate: 0,
     position: 'br',
     color: '#ffffff',
@@ -58,7 +59,7 @@ export const useBatchStore = create<BatchState>((set) => ({
       previewUrl: URL.createObjectURL(file),
       status: 'idle' as const
     }));
-    return { 
+    return {
       images: [...state.images, ...newImages],
       activeImageId: state.activeImageId || newImages[0]?.id || null
     };
@@ -68,17 +69,24 @@ export const useBatchStore = create<BatchState>((set) => ({
       if (img.id === id) URL.revokeObjectURL(img.previewUrl);
       return img.id !== id;
     });
-    return { 
+    return {
       images: filtered,
       activeImageId: state.activeImageId === id ? (filtered[0]?.id || null) : state.activeImageId
     };
   }),
   clearImages: () => set((state) => {
     state.images.forEach(img => URL.revokeObjectURL(img.previewUrl));
-    return { images: [], activeImageId: null };
+    return { 
+      images: [], 
+      activeImageId: null,
+      config: { ...state.config, image: null } // Reset logo on full clear
+    };
   }),
   updateConfig: (updates) => set((state) => ({
     config: { ...state.config, ...updates }
+  })),
+  clearWatermarkImage: () => set((state) => ({
+    config: { ...state.config, image: null }
   })),
   setActiveImage: (id) => set({ activeImageId: id }),
   setProcessing: (processing) => set({ isProcessing: processing }),
