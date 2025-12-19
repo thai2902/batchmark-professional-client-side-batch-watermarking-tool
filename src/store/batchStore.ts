@@ -33,6 +33,8 @@ export const useBatchStore = create<BatchState>((set) => ({
     fontSize: 48,
     fontFamily: 'sans-serif',
     gap: 100,
+    exportFormat: 'jpeg',
+    exportQuality: 0.95,
   },
   addImages: (files) => set((state) => {
     const newImages = files.map(file => ({

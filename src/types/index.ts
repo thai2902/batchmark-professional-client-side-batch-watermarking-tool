@@ -1,4 +1,5 @@
 export type WatermarkPosition = 'tl' | 'tc' | 'tr' | 'ml' | 'mc' | 'mr' | 'bl' | 'bc' | 'br' | 'tiled';
+export type ExportFormat = 'jpeg' | 'png';
 export interface WatermarkConfig {
   type: 'text' | 'image';
   text: string;
@@ -11,6 +12,9 @@ export interface WatermarkConfig {
   fontSize: number; // Used for text scale
   fontFamily: string;
   gap: number;
+  // Export Settings
+  exportFormat: ExportFormat;
+  exportQuality: number; // 0-1 (for JPEG)
 }
 export interface BatchImage {
   id: string;

@@ -7,7 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { HexColorPicker } from 'react-colorful';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
-import { Grid3X3, Type, Settings2, Image as ImageIcon, X, HelpCircle, UploadCloud } from 'lucide-react';
+import { Grid3X3, Type, Settings2, Image as ImageIcon, X, HelpCircle, UploadCloud, Download, Zap } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 export function SidebarControls() {
   const config = useBatchStore(s => s.config);
@@ -50,10 +50,11 @@ export function SidebarControls() {
         </div>
       </div>
       <Tabs defaultValue="content" className="w-full">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="content">Content</TabsTrigger>
           <TabsTrigger value="style">Style</TabsTrigger>
           <TabsTrigger value="layout">Layout</TabsTrigger>
+          <TabsTrigger value="export">Export</TabsTrigger>
         </TabsList>
         <TabsContent value="content" className="space-y-6 pt-4">
           {config.type === 'text' ? (
@@ -175,6 +176,66 @@ export function SidebarControls() {
               <Slider value={[config.gap]} onValueChange={([v]) => updateConfig({ gap: v })} max={500} step={10} />
             </div>
           )}
+        </TabsContent>
+        <TabsContent value="export" className="space-y-6 pt-4">
+          <div className="space-y-4">
+            <Label className="flex items-center gap-2">
+              Format
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <HelpCircle className="w-3 h-3 text-muted-foreground" />
+                  </TooltipTrigger>
+                  <TooltipContent>JPEG is smaller; PNG is lossless and larger.</TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </Label>
+            <div className="grid grid-cols-2 gap-2 p-1 bg-slate-100 dark:bg-slate-900 rounded-lg">
+              <button
+                onClick={() => updateConfig({ exportFormat: 'jpeg' })}
+                className={cn(
+                  "py-1.5 px-3 rounded-md text-xs font-bold transition-all",
+                  config.exportFormat === 'jpeg' ? "bg-white dark:bg-slate-800 shadow-sm text-primary" : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                JPEG
+              </button>
+              <button
+                onClick={() => updateConfig({ exportFormat: 'png' })}
+                className={cn(
+                  "py-1.5 px-3 rounded-md text-xs font-bold transition-all",
+                  config.exportFormat === 'png' ? "bg-white dark:bg-slate-800 shadow-sm text-primary" : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                PNG
+              </button>
+            </div>
+          </div>
+          {config.exportFormat === 'jpeg' && (
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <Label>JPEG Quality ({Math.round(config.exportQuality * 100)}%)</Label>
+                <Zap className={cn("w-3 h-3", config.exportQuality > 0.9 ? "text-amber-500" : "text-muted-foreground")} />
+              </div>
+              <Slider 
+                value={[config.exportQuality * 100]} 
+                onValueChange={([v]) => updateConfig({ exportQuality: v / 100 })} 
+                min={60} 
+                max={100} 
+                step={1} 
+              />
+              <p className="text-[10px] text-muted-foreground italic">Higher quality results in larger file sizes.</p>
+            </div>
+          )}
+          <div className="p-3 rounded-lg border border-indigo-100 dark:border-indigo-950 bg-indigo-50/50 dark:bg-indigo-950/20">
+            <div className="flex items-center gap-2 text-indigo-600 dark:text-indigo-400 mb-1">
+              <Download className="w-3 h-3" />
+              <span className="text-[11px] font-bold uppercase tracking-wider">Export Note</span>
+            </div>
+            <p className="text-[10px] leading-relaxed text-indigo-700/80 dark:text-indigo-300/60">
+              Batch processing runs in a separate thread. Original resolution and aspect ratios are strictly preserved for all images.
+            </p>
+          </div>
         </TabsContent>
       </Tabs>
     </div>

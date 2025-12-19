@@ -7,7 +7,7 @@ import { CanvasPreview } from '@/components/watermark/CanvasPreview';
 import { SidebarControls } from '@/components/watermark/SidebarControls';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
-import { Download, LayoutDashboard, Layers, Info, Trash2, Settings2, Loader2 } from 'lucide-react';
+import { Download, LayoutDashboard, Layers, Info, Trash2, Settings2, Loader2, ShieldCheck } from 'lucide-react';
 import { saveAs } from 'file-saver';
 import { toast, Toaster } from 'sonner';
 export function HomePage() {
@@ -25,9 +25,13 @@ export function HomePage() {
       toast.error('Please upload a logo image first');
       return;
     }
+    if (images.length > 20) {
+      toast.info(`Processing ${images.length} images. This might take a few moments depending on your hardware.`);
+    }
     setProcessing(true);
     setProgress(0);
     try {
+      // Import worker using Vite's URL constructor pattern
       const worker = new Worker(new URL('../workers/processor.worker.ts', import.meta.url), { type: 'module' });
       worker.postMessage({
         images: images.map(img => ({ file: img.file, id: img.id })),
@@ -39,11 +43,12 @@ export function HomePage() {
         } else if (e.data.type === 'complete') {
           saveAs(e.data.blob, `batchmark-${Date.now()}.zip`);
           setProcessing(false);
-          toast.success('Batch processing complete!');
+          toast.success('Batch processing complete! Files downloaded.');
           worker.terminate();
         }
       };
-      worker.onerror = () => {
+      worker.onerror = (err) => {
+        console.error("Worker error:", err);
         toast.error('Worker error occurred during processing');
         setProcessing(false);
         worker.terminate();
@@ -68,14 +73,23 @@ export function HomePage() {
           <Button
             onClick={handleProcessBatch}
             disabled={!canProcess}
-            className="shadow-md shadow-indigo-500/10 font-bold px-4 sm:px-6"
+            className="shadow-md shadow-indigo-500/10 font-bold px-4 sm:px-6 min-w-[140px]"
           >
-            {isProcessing ? `Processing ${progress}%` : "Process Batch"}
-            {!isProcessing && <Download className="ml-2 w-4 h-4" />}
+            {isProcessing ? (
+              <>
+                <Loader2 className="mr-2 w-4 h-4 animate-spin" />
+                {progress}%
+              </>
+            ) : (
+              <>
+                Export {config.exportFormat.toUpperCase()}
+                <Download className="ml-2 w-4 h-4" />
+              </>
+            )}
           </Button>
         </div>
       </header>
-      <main className="flex-1 flex overflow-hidden">
+      <main className="flex-1 flex flex-col md:flex-row overflow-hidden">
         {/* Gallery & Dropzone Area */}
         <div className="flex-1 overflow-y-auto scroll-smooth">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-10 lg:py-12">
@@ -95,7 +109,7 @@ export function HomePage() {
                 <div className="grid grid-cols-1 xl:grid-cols-12 gap-8 items-start">
                   <div className="xl:col-span-4 space-y-4">
                     <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-muted-foreground">
-                      <LayoutDashboard className="w-4 h-4" /> 
+                      <LayoutDashboard className="w-4 h-4" />
                       Batch Queue
                     </div>
                     <div className="bg-white dark:bg-slate-950 rounded-xl border p-4 shadow-sm">
@@ -104,13 +118,19 @@ export function HomePage() {
                   </div>
                   <div className="xl:col-span-8 space-y-4">
                     <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-muted-foreground">
-                      <Info className="w-4 h-4" /> 
+                      <Info className="w-4 h-4" />
                       Preview
                     </div>
                     <CanvasPreview />
-                    <p className="text-xs text-muted-foreground bg-slate-100 dark:bg-slate-900/50 p-3 rounded-lg border border-slate-200 dark:border-slate-800">
-                      <strong>Note:</strong> Final exports are generated at original resolution. The preview above is optimized for performance.
-                    </p>
+                    <div className="flex items-start gap-3 p-4 rounded-xl border border-indigo-100 dark:border-indigo-950 bg-indigo-50/30 dark:bg-indigo-950/10">
+                      <ShieldCheck className="w-5 h-5 text-indigo-600 mt-0.5 shrink-0" />
+                      <div className="space-y-1">
+                        <p className="text-xs font-bold text-indigo-900 dark:text-indigo-300 uppercase tracking-wide">Pixel-Perfect Preservation</p>
+                        <p className="text-xs text-indigo-700/80 dark:text-indigo-400/80 leading-relaxed">
+                          Exports strictly maintain the original dimensions and aspect ratios of your source images. The preview above is downscaled for performance.
+                        </p>
+                      </div>
+                    </div>
                   </div>
                 </div>
               )}
@@ -118,12 +138,12 @@ export function HomePage() {
           </div>
         </div>
         {/* Configuration Sidebar */}
-        <aside className="w-[360px] border-l bg-white dark:bg-slate-950 hidden md:block overflow-hidden flex flex-col">
-          <div className="p-6 border-b flex items-center gap-2">
+        <aside className="w-full md:w-[360px] border-t md:border-t-0 md:border-l bg-white dark:bg-slate-950 overflow-hidden flex flex-col shrink-0">
+          <div className="p-6 border-b flex items-center gap-2 bg-slate-50/50 dark:bg-slate-900/50">
             <Settings2 className="w-5 h-5 text-indigo-600" />
             <h2 className="font-bold text-sm uppercase tracking-widest">Watermark Settings</h2>
           </div>
-          <div className="flex-1 overflow-y-auto p-6">
+          <div className="flex-1 overflow-y-auto p-6 scrollbar-none">
             <SidebarControls />
           </div>
         </aside>
@@ -133,7 +153,7 @@ export function HomePage() {
           <div className="flex justify-between items-center mb-4">
             <div className="flex items-center gap-3">
               <Loader2 className="w-4 h-4 text-indigo-600 animate-spin" />
-              <span className="text-sm font-bold">Processing images...</span>
+              <span className="text-sm font-bold">Processing {images.length} images...</span>
             </div>
             <span className="text-sm font-mono text-muted-foreground">{progress}%</span>
           </div>
