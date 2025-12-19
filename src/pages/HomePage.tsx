@@ -7,7 +7,7 @@ import { CanvasPreview } from '@/components/watermark/CanvasPreview';
 import { SidebarControls } from '@/components/watermark/SidebarControls';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
-import { Download, LayoutDashboard, Layers, Info, Trash2, Settings2 } from 'lucide-react';
+import { Download, LayoutDashboard, Layers, Info, Trash2, Settings2, Loader2 } from 'lucide-react';
 import { saveAs } from 'file-saver';
 import { toast, Toaster } from 'sonner';
 export function HomePage() {
