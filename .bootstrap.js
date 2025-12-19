@@ -82,7 +82,8 @@ function runSetupCommands() {
     "bun add jszip@^3.10.1",
     "bun add file-saver@^2.0.5",
     "bun add usehooks-ts@^3.1.0",
-    "bun add react-colorful@^5.6.1"
+    "bun add react-colorful@^5.6.1",
+    "bun add react-dropzone jszip file-saver react-colorful usehooks-ts"
 ];
     
     if (commands.length === 0) {
