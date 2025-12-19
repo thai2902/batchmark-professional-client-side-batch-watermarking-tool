@@ -1,6 +1,6 @@
 # Batchmark
 
-[cloudflarebutton]
+[![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/thai2902/batchmark-professional-client-side-batch-watermarking-tool)
 
 ## Overview
 
@@ -134,7 +134,7 @@ This builds assets and runs `wrangler deploy`.
 
 For CI/CD, use Cloudflare Git integration or GitHub Actions with Wrangler.
 
-[cloudflarebutton]
+[![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/thai2902/batchmark-professional-client-side-batch-watermarking-tool)
 
 ## Project Structure
 
