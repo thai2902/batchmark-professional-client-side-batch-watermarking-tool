@@ -1,0 +1,15 @@
+{
+  "short_name": "BatchMark",
+  "name": "BatchMark - Client-Side Batch Watermarking",
+  "icons": [
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/2659/2659360.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ],
+  "start_url": ".",
+  "display": "standalone",
+  "theme_color": "#0F172A",
+  "background_color": "#F8FAFC"
+}
