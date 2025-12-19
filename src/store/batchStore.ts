@@ -1,23 +1,5 @@
 import { create } from 'zustand';
-export interface BatchImage {
-  id: string;
-  file: File;
-  previewUrl: string;
-  status: 'idle' | 'processing' | 'done' | 'error';
-}
-export interface WatermarkConfig {
-  type: 'text' | 'image';
-  text: string;
-  image: string | null; // Data URL for the logo
-  opacity: number; // 0-100
-  scale: number; // 10-200 (for image size %)
-  rotate: number; // 0-360
-  position: 'tl' | 'tc' | 'tr' | 'ml' | 'mc' | 'mr' | 'bl' | 'bc' | 'br' | 'tiled';
-  color: string;
-  fontSize: number; // Used for text scale
-  fontFamily: string;
-  gap: number;
-}
+import { BatchImage, WatermarkConfig } from '@/types';
 interface BatchState {
   images: BatchImage[];
   config: WatermarkConfig;
@@ -44,7 +26,7 @@ export const useBatchStore = create<BatchState>((set) => ({
     text: 'COPYRIGHT 2024',
     image: null,
     opacity: 50,
-    scale: 20, // Default 20% of image width for logo
+    scale: 20,
     rotate: 0,
     position: 'br',
     color: '#ffffff',
@@ -76,10 +58,10 @@ export const useBatchStore = create<BatchState>((set) => ({
   }),
   clearImages: () => set((state) => {
     state.images.forEach(img => URL.revokeObjectURL(img.previewUrl));
-    return { 
-      images: [], 
+    return {
+      images: [],
       activeImageId: null,
-      config: { ...state.config, image: null } // Reset logo on full clear
+      config: { ...state.config, image: null }
     };
   }),
   updateConfig: (updates) => set((state) => ({

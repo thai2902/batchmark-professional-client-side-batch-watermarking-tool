@@ -1,4 +1,4 @@
-import { WatermarkConfig } from '@/store/batchStore';
+import { WatermarkConfig } from '@/types';
 export async function drawWatermark(
   ctx: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D,
   image: HTMLImageElement | ImageBitmap,
@@ -32,8 +32,8 @@ export async function drawWatermark(
       br: [width - textWidth / 2 - 40, height - textHeight / 2 - 40],
     };
     if (config.position === 'tiled') {
-      const stepX = textWidth + config.gap;
-      const stepY = textHeight + config.gap;
+      const stepX = Math.max(textWidth + config.gap, 50);
+      const stepY = Math.max(textHeight + config.gap, 50);
       for (let x = -stepX; x < width + stepX; x += stepX) {
         for (let y = -stepY; y < height + stepY; y += stepY) {
           ctx.save();
@@ -66,8 +66,8 @@ export async function drawWatermark(
       br: [width - wmWidth - margin, height - wmHeight - margin],
     };
     if (config.position === 'tiled') {
-      const stepX = wmWidth + config.gap;
-      const stepY = wmHeight + config.gap;
+      const stepX = Math.max(wmWidth + config.gap, 50);
+      const stepY = Math.max(wmHeight + config.gap, 50);
       for (let x = -stepX; x < width + stepX; x += stepX) {
         for (let y = -stepY; y < height + stepY; y += stepY) {
           ctx.save();
