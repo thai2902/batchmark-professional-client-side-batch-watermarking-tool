@@ -1,45 +1,20 @@
-#root {
-	max-width: 1280px;
-	margin: 0 auto;
-	padding: 2rem;
-	text-align: center;
+input[type='range'] {
+  @apply accent-primary;
 }
-
-.logo {
-	height: 6em;
-	padding: 1.5em;
-	will-change: filter;
-	transition: filter 300ms;
+.react-colorful {
+  @apply !w-full !h-40 border-none;
 }
-.logo:hover {
-	filter: drop-shadow(0 0 2em #646cffaa);
+.react-colorful__saturation {
+  @apply !rounded-t-lg;
 }
-.logo.react:hover {
-	filter: drop-shadow(0 0 2em #61dafbaa);
+.react-colorful__hue {
+  @apply !rounded-b-lg !h-4;
 }
-.logo.cloudflare:hover {
-	filter: drop-shadow(0 0 2em #f6821faa);
+/* Hide scrollbar for cleaner sidebar */
+aside::-webkit-scrollbar {
+  display: none;
 }
-
-@keyframes logo-spin {
-	from {
-		transform: rotate(0deg);
-	}
-	to {
-		transform: rotate(360deg);
-	}
-}
-
-@media (prefers-reduced-motion: no-preference) {
-	a:nth-of-type(2) .logo {
-		animation: logo-spin infinite 20s linear;
-	}
-}
-
-.card {
-	padding: 2em;
-}
-
-.read-the-docs {
-	color: #888;
+aside {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }

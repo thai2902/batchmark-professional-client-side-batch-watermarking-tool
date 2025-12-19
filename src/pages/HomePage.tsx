@@ -1,138 +1,119 @@
-// Home page of the app.
-// Currently a demo placeholder "please wait" screen.
-// Replace this file with your actual app UI. Do not delete it to use some other file as homepage. Simply replace the entire contents of this file.
-
-import { useEffect, useMemo, useState } from 'react'
-import { Sparkles } from 'lucide-react'
-
-import { ThemeToggle } from '@/components/ThemeToggle'
-import { HAS_TEMPLATE_DEMO, TemplateDemo } from '@/components/TemplateDemo'
-import { Button } from '@/components/ui/button'
-import { Toaster, toast } from '@/components/ui/sonner'
-
-function formatDuration(ms: number): string {
-  const total = Math.max(0, Math.floor(ms / 1000))
-  const m = Math.floor(total / 60)
-  const s = total % 60
-  return `${m}:${s.toString().padStart(2, '0')}`
-}
-
+import React, { useState } from 'react';
+import { useBatchStore } from '@/store/batchStore';
+import { ThemeToggle } from '@/components/ThemeToggle';
+import { Dropzone } from '@/components/watermark/Dropzone';
+import { ImageGallery } from '@/components/watermark/ImageGallery';
+import { CanvasPreview } from '@/components/watermark/CanvasPreview';
+import { SidebarControls } from '@/components/watermark/SidebarControls';
+import { Button } from '@/components/ui/button';
+import { Progress } from '@/components/ui/progress';
+import { Download, LayoutDashboard, Layers, Info, Trash2 } from 'lucide-react';
+import { saveAs } from 'file-saver';
+import { toast, Toaster } from 'sonner';
 export function HomePage() {
-  const [coins, setCoins] = useState(0)
-  const [isRunning, setIsRunning] = useState(false)
-  const [startedAt, setStartedAt] = useState<number | null>(null)
-  const [elapsedMs, setElapsedMs] = useState(0)
-
-  useEffect(() => {
-    if (!isRunning || startedAt === null) return
-
-    const t = setInterval(() => {
-      setElapsedMs(Date.now() - startedAt)
-    }, 250)
-
-    return () => clearInterval(t)
-  }, [isRunning, startedAt])
-
-  const formatted = useMemo(() => formatDuration(elapsedMs), [elapsedMs])
-
-  const onPleaseWait = () => {
-    setCoins((c) => c + 1)
-
-    if (!isRunning) {
-      // Resume from the current elapsed time
-      setStartedAt(Date.now() - elapsedMs)
-      setIsRunning(true)
-      toast.success('Building your app…', {
-        description: "Hang tight — we're setting everything up.",
-      })
-      return
+  const images = useBatchStore(s => s.images);
+  const config = useBatchStore(s => s.config);
+  const isProcessing = useBatchStore(s => s.isProcessing);
+  const progress = useBatchStore(s => s.progress);
+  const setProcessing = useBatchStore(s => s.setProcessing);
+  const setProgress = useBatchStore(s => s.setProgress);
+  const clearImages = useBatchStore(s => s.clearImages);
+  const handleProcessBatch = async () => {
+    if (images.length === 0) return;
+    setProcessing(true);
+    setProgress(0);
+    try {
+      const worker = new Worker(new URL('../workers/processor.worker.ts', import.meta.url), { type: 'module' });
+      worker.postMessage({ 
+        images: images.map(img => ({ file: img.file, id: img.id })), 
+        config 
+      });
+      worker.onmessage = (e) => {
+        if (e.data.type === 'progress') {
+          setProgress(e.data.value);
+        } else if (e.data.type === 'complete') {
+          saveAs(e.data.blob, 'batchmark-export.zip');
+          setProcessing(false);
+          toast.success('Process complete! Downloading ZIP...');
+          worker.terminate();
+        }
+      };
+    } catch (err) {
+      console.error(err);
+      toast.error('Failed to process images');
+      setProcessing(false);
     }
-
-    setIsRunning(false)
-    toast.info('Still working…', {
-      description: 'You can come back in a moment.',
-    })
-  }
-
-  const onReset = () => {
-    setCoins(0)
-    setIsRunning(false)
-    setStartedAt(null)
-    setElapsedMs(0)
-    toast('Reset complete')
-  }
-
-  const onAddCoin = () => {
-    setCoins((c) => c + 1)
-    toast('Coin added')
-  }
-
+  };
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-background text-foreground p-4 overflow-hidden relative">
-      <ThemeToggle />
-      <div className="absolute inset-0 bg-gradient-rainbow opacity-10 dark:opacity-20 pointer-events-none" />
-
-      <div className="text-center space-y-8 relative z-10 animate-fade-in w-full">
-        <div className="flex justify-center">
-          <div className="w-16 h-16 rounded-2xl bg-gradient-primary flex items-center justify-center shadow-primary floating">
-            <Sparkles className="w-8 h-8 text-white rotating" />
+    <div className="min-h-screen bg-slate-50 dark:bg-[#020617] flex flex-col">
+      <header className="h-16 border-b bg-white dark:bg-slate-950 px-6 flex items-center justify-between sticky top-0 z-40">
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center text-white shadow-lg">
+            <Layers className="w-5 h-5" />
+          </div>
+          <span className="font-bold text-lg tracking-tight">BatchMark</span>
+        </div>
+        <div className="flex items-center gap-4">
+          <ThemeToggle className="relative top-0 right-0" />
+          <Button 
+            onClick={handleProcessBatch} 
+            disabled={images.length === 0 || isProcessing}
+            className="shadow-primary font-bold px-6"
+          >
+            {isProcessing ? `Processing ${progress}%` : "Process Batch"}
+            {!isProcessing && <Download className="ml-2 w-4 h-4" />}
+          </Button>
+        </div>
+      </header>
+      <main className="flex-1 flex overflow-hidden">
+        {/* Gallery & Dropzone Area */}
+        <div className="flex-1 overflow-y-auto p-6 space-y-8 scroll-smooth">
+          <div className="max-w-4xl mx-auto space-y-8">
+            <Dropzone />
+            {images.length > 0 && (
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+                <div className="lg:col-span-4">
+                  <div className="sticky top-24">
+                    <div className="flex justify-between items-center mb-4">
+                       <h2 className="text-sm font-bold flex items-center gap-2"><LayoutDashboard className="w-4 h-4" /> BATCH QUEUE</h2>
+                       <Button variant="ghost" size="sm" onClick={clearImages} className="text-destructive hover:text-destructive">
+                          <Trash2 className="w-4 h-4" />
+                       </Button>
+                    </div>
+                    <ImageGallery />
+                  </div>
+                </div>
+                <div className="lg:col-span-8 space-y-4">
+                  <h2 className="text-sm font-bold flex items-center gap-2"><Info className="w-4 h-4" /> PREVIEW</h2>
+                  <CanvasPreview />
+                  <div className="p-4 bg-slate-100 dark:bg-slate-900 rounded-lg text-xs text-muted-foreground leading-relaxed">
+                    Note: Watermark appearance may vary slightly based on final export resolution. The preview uses a scaled-down representation for speed.
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
-
-        <div className="space-y-3">
-          <h1 className="text-5xl md:text-7xl font-display font-bold text-balance leading-tight">
-            Creating your <span className="text-gradient">app</span>
-          </h1>
-          <p className="text-lg md:text-xl text-muted-foreground max-w-xl mx-auto text-pretty">
-            Your application would be ready soon.
-          </p>
-        </div>
-
-        {HAS_TEMPLATE_DEMO ? (
-          <div className="max-w-5xl mx-auto text-left">
-            <TemplateDemo />
+        {/* Configuration Sidebar */}
+        <aside className="w-80 border-l bg-white dark:bg-slate-950 p-6 overflow-y-auto hidden md:block">
+          <div className="flex items-center gap-2 mb-6">
+            <Settings2 className="w-5 h-5 text-primary" />
+            <h2 className="font-bold text-sm uppercase tracking-widest">Settings</h2>
           </div>
-        ) : (
-          <>
-            <div className="flex justify-center gap-4">
-              <Button
-                size="lg"
-                onClick={onPleaseWait}
-                className="btn-gradient px-8 py-4 text-lg font-semibold hover:-translate-y-0.5 transition-all duration-200"
-                aria-live="polite"
-              >
-                Please Wait
-              </Button>
-            </div>
-
-            <div className="flex items-center justify-center gap-6 text-sm text-muted-foreground">
-              <div>
-                Time elapsed:{' '}
-                <span className="font-medium tabular-nums text-foreground">{formatted}</span>
-              </div>
-              <div>
-                Coins:{' '}
-                <span className="font-medium tabular-nums text-foreground">{coins}</span>
-              </div>
-            </div>
-
-            <div className="flex justify-center gap-2">
-              <Button variant="outline" size="sm" onClick={onReset}>
-                Reset
-              </Button>
-              <Button variant="outline" size="sm" onClick={onAddCoin}>
-                Add Coin
-              </Button>
-            </div>
-          </>
-        )}
-      </div>
-
-      <footer className="absolute bottom-8 text-center text-muted-foreground/80">
-        <p>Powered by Cloudflare</p>
-      </footer>
-
-      <Toaster richColors closeButton />
+          <SidebarControls />
+        </aside>
+      </main>
+      {isProcessing && (
+        <div className="fixed bottom-6 left-6 right-6 md:left-auto md:right-8 md:w-96 bg-white dark:bg-slate-900 border shadow-2xl rounded-xl p-6 animate-in slide-in-from-bottom-4 z-50">
+          <div className="flex justify-between items-center mb-3">
+            <span className="text-sm font-bold">Processing Batch...</span>
+            <span className="text-sm font-mono">{progress}%</span>
+          </div>
+          <Progress value={progress} className="h-2" />
+        </div>
+      )}
+      <Toaster richColors position="top-center" />
     </div>
-  )
+  );
 }
+import { Settings2 } from 'lucide-react';

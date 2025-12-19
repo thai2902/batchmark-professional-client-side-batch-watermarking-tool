@@ -1,8 +1,8 @@
 import React from 'react';
-import { useBatchStore } from '@/store/batchStore';
-import { BatchImage } from '@/types';
+import { useBatchStore, BatchImage } from '@/store/batchStore';
 import { X } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 export function ImageGallery() {
   const images = useBatchStore(s => s.images);
@@ -17,7 +17,7 @@ export function ImageGallery() {
       </div>
       <ScrollArea className="h-[400px] pr-4">
         <div className="grid grid-cols-2 gap-3">
-          {images.map((img: BatchImage) => (
+          {images.map((img) => (
             <div
               key={img.id}
               onClick={() => setActiveImage(img.id)}
