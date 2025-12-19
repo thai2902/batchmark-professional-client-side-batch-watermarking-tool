@@ -18,21 +18,23 @@ self.onmessage = async (e: MessageEvent<{ images: { file: File; id: string }[], 
     const item = images[i];
     try {
       const bitmap = await createImageBitmap(item.file);
-      // CRITICAL: We use original bitmap dimensions to ensure pixel-perfect 1:1 resolution exports.
+      // Use original bitmap dimensions for pixel-perfect exports
       const canvas = new OffscreenCanvas(bitmap.width, bitmap.height);
       const ctx = canvas.getContext('2d');
       if (ctx) {
         await drawWatermark(ctx, bitmap, config, bitmap.width, bitmap.height, watermarkBitmap);
         const mimeType = config.exportFormat === 'png' ? 'image/png' : 'image/jpeg';
         const extension = config.exportFormat === 'png' ? 'png' : 'jpg';
-        // Quality argument only applies to image/jpeg and image/webp
-        const blob = await canvas.convertToBlob({ 
-          type: mimeType, 
-          quality: config.exportFormat === 'jpeg' ? config.exportQuality : undefined 
+        const blob = await canvas.convertToBlob({
+          type: mimeType,
+          quality: config.exportFormat === 'jpeg' ? config.exportQuality : undefined
         });
+        // Use a truncated version of the ID to ensure unique filenames in the ZIP
+        const shortId = item.id.slice(0, 6);
         const fileNameWithoutExt = item.file.name.replace(/\.[^/.]+$/, "");
-        zip.file(`${fileNameWithoutExt}_watermarked.${extension}`, blob);
+        zip.file(`${fileNameWithoutExt}_${shortId}.${extension}`, blob);
       }
+      // Explicitly close bitmap to free memory immediately
       bitmap.close();
       self.postMessage({ type: 'progress', value: Math.round(((i + 1) / images.length) * 100) });
     } catch (err) {

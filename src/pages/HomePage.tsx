@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { useBatchStore } from '@/store/batchStore';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { Dropzone } from '@/components/watermark/Dropzone';
@@ -18,6 +18,17 @@ export function HomePage() {
   const setProcessing = useBatchStore(s => s.setProcessing);
   const setProgress = useBatchStore(s => s.setProgress);
   const clearImages = useBatchStore(s => s.clearImages);
+  const workerRef = useRef<Worker | null>(null);
+  // Cleanup effect to prevent memory leaks and terminate workers
+  useEffect(() => {
+    return () => {
+      if (workerRef.current) {
+        workerRef.current.terminate();
+      }
+      // Revoke all existing object URLs
+      images.forEach(img => URL.revokeObjectURL(img.previewUrl));
+    };
+  }, []);
   const canProcess = images.length > 0 && !isProcessing && (config.type === 'text' || !!config.image);
   const handleProcessBatch = async () => {
     if (images.length === 0) return;
@@ -26,13 +37,13 @@ export function HomePage() {
       return;
     }
     if (images.length > 20) {
-      toast.info(`Processing ${images.length} images. This might take a few moments depending on your hardware.`);
+      toast.info(`Processing ${images.length} images. This might take a moment.`);
     }
     setProcessing(true);
     setProgress(0);
     try {
-      // Import worker using Vite's URL constructor pattern
       const worker = new Worker(new URL('../workers/processor.worker.ts', import.meta.url), { type: 'module' });
+      workerRef.current = worker;
       worker.postMessage({
         images: images.map(img => ({ file: img.file, id: img.id })),
         config
@@ -41,10 +52,11 @@ export function HomePage() {
         if (e.data.type === 'progress') {
           setProgress(e.data.value);
         } else if (e.data.type === 'complete') {
-          saveAs(e.data.blob, `batchmark-${Date.now()}.zip`);
+          saveAs(e.data.blob, `batchmark-export-${Date.now()}.zip`);
           setProcessing(false);
-          toast.success('Batch processing complete! Files downloaded.');
+          toast.success('Batch processing complete!');
           worker.terminate();
+          workerRef.current = null;
         }
       };
       worker.onerror = (err) => {
@@ -52,6 +64,7 @@ export function HomePage() {
         toast.error('Worker error occurred during processing');
         setProcessing(false);
         worker.terminate();
+        workerRef.current = null;
       };
     } catch (err) {
       console.error(err);
@@ -90,7 +103,6 @@ export function HomePage() {
         </div>
       </header>
       <main className="flex-1 flex flex-col md:flex-row overflow-hidden">
-        {/* Gallery & Dropzone Area */}
         <div className="flex-1 overflow-y-auto scroll-smooth">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-10 lg:py-12">
             <div className="space-y-12">
@@ -127,7 +139,7 @@ export function HomePage() {
                       <div className="space-y-1">
                         <p className="text-xs font-bold text-indigo-900 dark:text-indigo-300 uppercase tracking-wide">Pixel-Perfect Preservation</p>
                         <p className="text-xs text-indigo-700/80 dark:text-indigo-400/80 leading-relaxed">
-                          Exports strictly maintain the original dimensions and aspect ratios of your source images. The preview above is downscaled for performance.
+                          Exports strictly maintain original dimensions. The preview above is optimized for display.
                         </p>
                       </div>
                     </div>
@@ -137,7 +149,6 @@ export function HomePage() {
             </div>
           </div>
         </div>
-        {/* Configuration Sidebar */}
         <aside className="w-full md:w-[360px] border-t md:border-t-0 md:border-l bg-white dark:bg-slate-950 overflow-hidden flex flex-col shrink-0">
           <div className="p-6 border-b flex items-center gap-2 bg-slate-50/50 dark:bg-slate-900/50">
             <Settings2 className="w-5 h-5 text-indigo-600" />
@@ -149,15 +160,17 @@ export function HomePage() {
         </aside>
       </main>
       {isProcessing && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 w-[calc(100%-3rem)] max-w-md bg-white dark:bg-slate-900 border shadow-2xl rounded-2xl p-6 animate-in slide-in-from-bottom-4 z-50 ring-1 ring-black/5">
-          <div className="flex justify-between items-center mb-4">
-            <div className="flex items-center gap-3">
-              <Loader2 className="w-4 h-4 text-indigo-600 animate-spin" />
-              <span className="text-sm font-bold">Processing {images.length} images...</span>
+        <div className="fixed inset-0 z-50 flex items-end justify-center p-4 sm:p-6 pointer-events-none">
+          <div className="w-full max-w-md bg-white dark:bg-slate-900 border shadow-2xl rounded-2xl p-6 animate-in slide-in-from-bottom-4 pointer-events-auto ring-1 ring-black/5">
+            <div className="flex justify-between items-center mb-4">
+              <div className="flex items-center gap-3">
+                <Loader2 className="w-4 h-4 text-indigo-600 animate-spin" />
+                <span className="text-sm font-bold">Processing {images.length} images...</span>
+              </div>
+              <span className="text-sm font-mono text-muted-foreground">{progress}%</span>
             </div>
-            <span className="text-sm font-mono text-muted-foreground">{progress}%</span>
+            <Progress value={progress} className="h-2 bg-slate-100 dark:bg-slate-800" />
           </div>
-          <Progress value={progress} className="h-2 bg-slate-100 dark:bg-slate-800" />
         </div>
       )}
       <Toaster richColors position="top-center" />

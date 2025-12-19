@@ -1,4 +1,4 @@
-import { WatermarkConfig } from '@/types';
+import { WatermarkConfig } from '../types';
 export async function drawWatermark(
   ctx: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D,
   image: HTMLImageElement | ImageBitmap,
@@ -7,29 +7,33 @@ export async function drawWatermark(
   height: number,
   watermarkImg?: HTMLImageElement | ImageBitmap | null
 ) {
+  // Reset and draw background
   ctx.clearRect(0, 0, width, height);
   ctx.drawImage(image, 0, 0, width, height);
   ctx.save();
   ctx.globalAlpha = config.opacity / 100;
+  // Dynamic margin: 4% of the image width to ensure it scales with resolution
+  const margin = width * 0.04;
   if (config.type === 'text') {
+    const fontSize = config.fontSize * (width / 1000);
     ctx.fillStyle = config.color;
-    ctx.font = `${config.fontSize * (width / 1000)}px ${config.fontFamily}`;
+    ctx.font = `${fontSize}px ${config.fontFamily}`;
     ctx.textBaseline = 'middle';
     ctx.textAlign = 'center';
     const text = config.text;
     const metrics = ctx.measureText(text);
     const textWidth = metrics.width;
-    const textHeight = config.fontSize * (width / 1000);
+    const textHeight = fontSize;
     const positions: Record<string, [number, number]> = {
-      tl: [textWidth / 2 + 40, textHeight / 2 + 40],
-      tc: [width / 2, textHeight / 2 + 40],
-      tr: [width - textWidth / 2 - 40, textHeight / 2 + 40],
-      ml: [textWidth / 2 + 40, height / 2],
+      tl: [textWidth / 2 + margin, textHeight / 2 + margin],
+      tc: [width / 2, textHeight / 2 + margin],
+      tr: [width - textWidth / 2 - margin, textHeight / 2 + margin],
+      ml: [textWidth / 2 + margin, height / 2],
       mc: [width / 2, height / 2],
-      mr: [width - textWidth / 2 - 40, height / 2],
-      bl: [textWidth / 2 + 40, height - textHeight / 2 - 40],
-      bc: [width / 2, height - textHeight / 2 - 40],
-      br: [width - textWidth / 2 - 40, height - textHeight / 2 - 40],
+      mr: [width - textWidth / 2 - margin, height / 2],
+      bl: [textWidth / 2 + margin, height - textHeight / 2 - margin],
+      bc: [width / 2, height - textHeight / 2 - margin],
+      br: [width - textWidth / 2 - margin, height - textHeight / 2 - margin],
     };
     if (config.position === 'tiled') {
       const stepX = Math.max(textWidth + config.gap, 50);
@@ -53,7 +57,6 @@ export async function drawWatermark(
     const wmWidth = (config.scale / 100) * width;
     const aspectRatio = watermarkImg.height / watermarkImg.width;
     const wmHeight = wmWidth * aspectRatio;
-    const margin = 40;
     const positions: Record<string, [number, number]> = {
       tl: [margin, margin],
       tc: [width / 2 - wmWidth / 2, margin],

@@ -10,23 +10,28 @@ export function CanvasPreview() {
   const [loading, setLoading] = useState(false);
   const activeImage = images.find(img => img.id === activeImageId);
   useEffect(() => {
+    let isCancelled = false;
     if (!activeImage || !canvasRef.current) return;
     const render = async () => {
       setLoading(true);
       const mainImg = new Image();
       mainImg.src = activeImage.previewUrl;
-      await new Promise((resolve) => {
+      await new Promise((resolve, reject) => {
         mainImg.onload = resolve;
+        mainImg.onerror = reject;
       });
+      if (isCancelled) return;
       let wmImg: HTMLImageElement | null = null;
       if (config.type === 'image' && config.image) {
         wmImg = new Image();
         wmImg.src = config.image;
-        await new Promise((resolve) => {
+        await new Promise((resolve, reject) => {
           wmImg!.onload = resolve;
+          wmImg!.onerror = reject;
         });
       }
-      const canvas = canvasRef.current!;
+      if (isCancelled || !canvasRef.current) return;
+      const canvas = canvasRef.current;
       const containerWidth = canvas.parentElement?.clientWidth || 800;
       const ratio = mainImg.height / mainImg.width;
       canvas.width = containerWidth;
@@ -35,9 +40,15 @@ export function CanvasPreview() {
       if (ctx) {
         await drawWatermark(ctx, mainImg, config, canvas.width, canvas.height, wmImg);
       }
-      setLoading(false);
+      if (!isCancelled) setLoading(false);
     };
-    render().catch(console.error);
+    render().catch((err) => {
+      console.error("Preview render failed:", err);
+      if (!isCancelled) setLoading(false);
+    });
+    return () => {
+      isCancelled = true;
+    };
   }, [activeImage, config]);
   if (!activeImage) return (
     <div className="h-full min-h-[400px] flex items-center justify-center bg-slate-50 dark:bg-slate-900 rounded-xl border-2 border-dashed border-slate-200 dark:border-slate-800">
